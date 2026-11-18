@@ -1,0 +1,116 @@
+﻿@{
+    ViewData["Title"] = "Quản lý Tiền mặt";
+}
+
+<div class="container-fluid p-0">
+    <!-- Tiêu đề và nút thao tác nhanh -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fa-solid fa-wallet text-primary"></i> Quản lý Quỹ Tiền Mặt</h2>
+        <button class="btn btn-primary" onclick="openAddModal()">
+            <i class="fa-solid fa-plus"></i> Lập phiếu thu/chi
+        </button>
+    </div>
+
+    <!-- Các thẻ thống kê nhanh -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-success text-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title">Tồn quỹ hiện tại</h6>
+                    <h3>125,450,000 đ</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title">Tổng thu trong tháng</h6>
+                    <h3>45,000,000 đ</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title">Tổng chi trong tháng</h6>
+                    <h3>12,500,000 đ</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng dữ liệu sổ quỹ -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white fw-bold">Sổ quỹ tiền mặt gần đây</div>
+        <div class="card-body">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Ngày</th>
+                        <th>Số chứng từ</th>
+                        <th>Diễn giải</th>
+                        <th>Thu</th>
+                        <th>Chi</th>
+                        <th class="text-end" style="width: 120px;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>08/11/2026</td>
+                        <td>PT001</td>
+                        <td>Thu tiền bán hàng mặt hóa đơn #01</td>
+                        <td class="text-success fw-bold">+ 5,000,000 đ</td>
+                        <td>-</td>
+                        <td class="text-end">
+                            <!-- Nhóm nút Sửa/Xoá sẽ ẩn đi và chỉ hiện khi rê chuột vào dòng (hover) -->
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-outline-primary py-0 px-2 me-1" title="Sửa chứng từ" onclick="editRow('PT001')">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger py-0 px-2" title="Xoá chứng từ" onclick="deleteRow('PT001')">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>07/11/2026</td>
+                        <td>PC001</td>
+                        <td>Thanh toán tiền điện văn phòng tháng 10</td>
+                        <td>-</td>
+                        <td class="text-danger fw-bold">- 2,300,000 đ</td>
+                        <td class="text-end">
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-outline-primary py-0 px-2 me-1" title="Sửa chứng từ" onclick="editRow('PC001')">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger py-0 px-2" title="Xoá chứng từ" onclick="deleteRow('PC001')">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Phần viết mã JavaScript riêng cho trang Tiền mặt (nếu cần) -->
+@section Scripts {
+    <script>
+        function openAddModal() {
+            alert("Mở form lập phiếu thu / chi mới.");
+        }
+
+        function editRow(id) {
+            alert("Chỉnh sửa chứng từ: " + id);
+        }
+
+        function deleteRow(id) {
+            if (confirm("Bạn có chắc chắn muốn xoá chứng từ " + id + " không?")) {
+                alert("Đã xoá thành công chứng từ " + id);
+            }
+        }
+    </script>
+}

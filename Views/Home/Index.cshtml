@@ -1,0 +1,149 @@
+﻿@{
+    ViewData["Title"] = "Tổng quan hệ thống";
+}
+<div class="container-fluid p-0">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fa-solid fa-chart-pie text-primary"></i> Tổng quan tài chính doanh nghiệp</h2>
+        <span class="text-muted">Cập nhật lúc: 09/11/2026</span>
+    </div>
+
+    <!-- Các thẻ thống kê nhanh -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Tổng doanh thu</h6>
+                    <h4 class="text-primary fw-bold">450,000,000 đ</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Quỹ tiền mặt</h6>
+                    <h4 class="text-success fw-bold">125,450,000 đ</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Tiền gửi ngân hàng</h6>
+                    <h4 class="text-info fw-bold">630,700,000 đ</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Công nợ phải trả</h6>
+                    <h4 class="text-danger fw-bold">45,200,000 đ</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Khu vực nội dung khác -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white fw-bold">Biểu đồ biến động thu chi trong tháng</div>
+        <div class="card-body">
+            <p class="text-muted">Khu vực hiển thị biểu đồ thống kê tài chính...</p>
+        </div>
+    </div>
+</div>
+
+
+<!-- CSS cấu hình cố định Header, Cột Checkbox bên trái và Cột Thao tác bên phải, kèm hiệu ứng Hover -->
+<style>
+    .table-sticky {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+        /* 1. Cố định hàng tiêu đề (Header) khi cuộn dọc */
+        .table-sticky thead th {
+            position: sticky !important;
+            top: 0 !important;
+            background-color: #f8f9fa !important;
+            z-index: 2;
+        }
+
+        /* 2. Cố định cột đầu tiên (Checkbox) bên trái */
+        .table-sticky th:first-child,
+        .table-sticky td:first-child {
+            position: sticky !important;
+            left: 0 !important;
+            background-color: #ffffff !important;
+            z-index: 1;
+        }
+
+        /* Ô góc trên cùng bên trái giao giữa header và checkbox */
+        .table-sticky thead th:first-child {
+            z-index: 3 !important;
+            background-color: #f8f9fa !important;
+        }
+
+        /* 3. Cố định cột "Thao tác" ở sát mép phải */
+        .table-sticky .sticky-col-right {
+            position: sticky !important;
+            right: 0 !important;
+            background-color: #ffffff !important;
+            z-index: 2;
+            box-shadow: -3px 0 5px rgba(0, 0, 0, 0.03); /* Đổ bóng nhẹ phân cách với các cột giữa */
+        }
+
+        /* Riêng header của cột Thao tác */
+        .table-sticky thead .sticky-col-right {
+            background-color: #f8f9fa !important;
+            z-index: 3 !important;
+        }
+
+        /* 4. Mặc định ẩn các nút tác vụ đi */
+        .table-sticky tbody tr .action-buttons {
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        /* 5. Khi rê chuột vào dòng (tr:hover), hiện các nút tác vụ lên */
+        .table-sticky tbody tr:hover .action-buttons {
+            opacity: 1;
+        }
+
+        /* 6. Đồng bộ màu nền khi rê chuột vào dòng cho cột Thao tác bên phải */
+        .table-sticky tbody tr:hover td.sticky-col-right {
+            background-color: #f8f9fa !important;
+        }
+
+        /* Đồng bộ màu nền khi rê chuột vào dòng cho cột Checkbox bên trái */
+        .table-sticky tbody tr:hover td:first-child {
+            background-color: #f8f9fa !important;
+        }
+</style>
+
+<!-- Script hỗ trợ tính năng Chọn tất cả (Check All) và đồng bộ ngược -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const selectAllCheckbox = document.getElementById("selectAll");
+        const rowCheckboxes = document.querySelectorAll(".row-checkbox");
+
+        if (selectAllCheckbox) {
+            // 1. Khi bấm nút chọn tất cả ở Header
+            selectAllCheckbox.addEventListener("change", function () {
+                rowCheckboxes.forEach(checkbox => {
+                    checkbox.checked = selectAllCheckbox.checked;
+                });
+            });
+
+            // 2. Khi người dùng tự tích chọn/bỏ chọn từng dòng bên dưới
+            rowCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener("change", function () {
+                    const totalRows = rowCheckboxes.length;
+                    const checkedRows = document.querySelectorAll(".row-checkbox:checked").length;
+
+                    // Nếu chọn hết các dòng -> bật tích ô trên, ngược lại thì bỏ tích
+                    selectAllCheckbox.checked = (totalRows > 0 && totalRows === checkedRows);
+                });
+            });
+        }
+    });
+</script>

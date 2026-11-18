@@ -1,0 +1,700 @@
+@model IEnumerable<Free4u_Mini_App.Models.Transactions>
+
+@{
+    ViewData["Title"] = "Quản lý Tiền gửi ngân hàng";
+
+    decimal totalAmountSum = Model != null && Model.Any() ? Model.Sum(x => x.TotalAmount) : 0;
+    int totalCount = Model != null ? Model.Count() : 0;
+}
+
+<div class="container-fluid p-0 d-flex flex-column" style="height: calc(100vh - 100px); overflow: hidden;">
+
+    <!-- 1. THANH TAB CON PHÍA TRÊN (SUB-MENU) -->
+    <ul class="nav nav-tabs mb-3 flex-shrink-0" id="bankTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-semibold text-success border-bottom border-success border-2 tab-filter" data-filter="all" type="button">Thu, chi tiền</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link text-dark tab-filter" data-filter="thu" type="button">Thu tiền</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link text-dark tab-filter" data-filter="chi" type="button">Chi tiền</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link text-dark" id="tab-ebank" data-bs-toggle="tab" type="button">Ngân hàng điện tử</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link text-dark" id="tab-excel" data-bs-toggle="tab" type="button">Nhập sao kê từ Excel</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link text-dark" id="tab-reconcile" data-bs-toggle="tab" type="button">Đối chiếu ngân hàng</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link text-dark" id="tab-report" data-bs-toggle="tab" type="button">Báo cáo</button>
+        </li>
+    </ul>
+
+    <!-- 2. THANH CÔNG CỤ (TOOLBAR) -->
+    <div class="card shadow-sm border-0 mb-3 bg-white flex-shrink-0">
+        <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+                <!-- Ô tìm kiếm -->
+                <div class="input-group" style="width: 300px;">
+                    <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-search text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0 ps-0" placeholder="Nhập từ khóa tìm kiếm...">
+                </div>
+
+                <!-- CỤM NÚT HÀNH ĐỘNG HÀNG LOẠT (ẨN MẶC ĐỊNH, CHỈ HIỆN KHI CÓ DÒNG ĐƯỢC TICK CHỌN) -->
+                <div id="batchActionToolbar" class="d-none align-items-center gap-2">
+                    <span class="text-secondary small">Đã chọn: <strong id="selected-count" class="text-dark">0</strong></span>
+                    <button type="button" class="btn btn-outline-success btn-sm" id="btnBatchPost" title="Ghi sổ hàng loạt">
+                        <i class="fa-solid fa-lock me-1"></i> Ghi sổ
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnBatchUnpost" title="Bỏ ghi sổ hàng loạt">
+                        <i class="fa-solid fa-lock-open me-1"></i> Bỏ ghi sổ
+                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-sm" id="btnBatchDelete" title="Xóa hàng loạt">
+                        <i class="fa-solid fa-trash me-1"></i> Xóa
+                    </button>
+                </div>
+            </div>
+
+            <!-- CỤM NÚT THÔNG THƯỜNG BÊN PHẢI (SẼ TỰ ĐỘNG ẨN KHI CÓ TICK CHỌN) -->
+            <div id="defaultToolbarActions" class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-secondary btn-sm" title="Làm mới"><i class="fa-solid fa-rotate"></i></button>
+                <button class="btn btn-outline-secondary btn-sm" title="Xuất Excel"><i class="fa-solid fa-file-excel"></i></button>
+                <button class="btn btn-outline-secondary btn-sm" title="Tùy chỉnh cột"><i class="fa-solid fa-gear"></i></button>
+                <button class="btn btn-outline-secondary btn-sm" title="Bộ lọc"><i class="fa-solid fa-filter"></i></button>
+
+                <!-- Dropdown Thu tiền -->
+                <div class="dropdown" id="toolbar-thu">
+                    <button class="btn btn-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Thu tiền</button>
+                    <ul class="dropdown-menu shadow">
+                        <li><a class="dropdown-item" href="#"><i class="fa-solid fa-plus text-success me-2"></i> Thu tiền khách hàng</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fa-solid fa-plus text-success me-2"></i> Thu khác</a></li>
+                    </ul>
+                </div>
+
+                <!-- Dropdown Chi tiền -->
+                <div class="dropdown" id="toolbar-chi">
+                    <button class="btn btn-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Chi tiền</button>
+                    <ul class="dropdown-menu shadow">
+                        <li><a class="dropdown-item" href="#"><i class="fa-solid fa-plus text-danger me-2"></i> Trả tiền nhà cung cấp</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fa-solid fa-plus text-danger me-2"></i> Chi trả lương, chi phí khác</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. BẢNG DỮ LIỆU CHÍNH -->
+    <div class="card shadow-sm border-0 d-flex flex-column flex-grow-1 mb-0 overflow-hidden">
+        <div class="card-body p-0 d-flex flex-column flex-grow-1 overflow-hidden">
+            <div class="table-responsive flex-grow-1 position-relative" style="overflow: auto;">
+                <table class="table table-hover table-bordered align-middle mb-0 text-nowrap table-sticky">
+                    <thead class="table-light text-secondary small">
+                        <tr>
+                            <th style="width: 40px;" class="ps-3">
+                                <input class="form-check-input" type="checkbox" id="selectAll">
+                            </th>
+                            <th>ID</th>
+                            <th>JournalDate</th>
+                            <th>VoucherDate</th>
+                            <th>VoucherNo</th>
+                            <th>Description</th>
+                            <th class="text-end">TotalAmount</th>
+                            <th>Person</th>
+                            <th>TransactionType</th>
+                            <th>PaymentMethod</th>
+                            <th>TransactionNote</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var item in Model)
+                            {
+                                string typeStr = (item.TransactionType ?? "").ToLower();
+                                string voucherStr = (item.VoucherNo ?? "").ToLower();
+                                string rowType = (typeStr.Contains("thu") || voucherStr.StartsWith("r") || voucherStr.Contains("bc")) ? "thu" : "chi";
+
+                                <tr data-type="@rowType"
+                                    data-amount="@item.TotalAmount"
+                                    data-transaction-id="@item.TransactionID"
+                                    class="hover-row-action">
+                                    <td class="ps-3">
+                                        <input class="form-check-input row-checkbox" type="checkbox" value="@item.TransactionID">
+                                    </td>
+                                    <td>@item.TransactionID</td>
+                                    <td>@item.JournalDate</td>
+                                    <td>@item.VoucherDate</td>
+                                    <td>@item.VoucherNo</td>
+                                    <td>@item.Description</td>
+                                    <td class="text-end">@item.TotalAmount.ToString("N0")</td>
+                                    <td>@item.Person</td>
+                                    <td>@item.TransactionType</td>
+                                    <td>@item.PaymentMethod</td>
+                                    <td>
+                                        @item.TransactionNote
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="11" class="text-center py-3 text-muted">Không có dữ liệu trong bảng.</td>
+                            </tr>
+                        }
+                    </tbody>
+
+                    <!-- HÀNG TỔNG CỘNG CHÂN TRANG (STICKY BOTTOM) -->
+                    <tfoot class="table-light fw-bold text-dark table-footer-sticky">
+                        <tr>
+                            <td colspan="6" class="ps-3 text-uppercase">Tổng</td>
+                            <td class="text-end" id="footer-total-amount">@totalAmountSum.ToString("N0")</td>
+                            <td colspan="4"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- 4. THANH PHÂN TRANG CHUẨN -->
+        <div class="card-footer bg-white py-2 px-3 d-flex justify-content-between align-items-center border-top flex-shrink-0">
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-secondary small">Tổng số: <strong class="text-dark" id="total-records">@totalCount</strong></span>
+            </div>
+
+            <div class="d-flex align-items-center gap-4">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-secondary small">Số dòng/trang</span>
+                    <select id="pageSizeSelect" class="form-select form-select-sm py-0" style="width: 70px;">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                    <span class="small text-dark fw-semibold" id="pagination-info">1 - 20</span>
+                    <div class="btn-group" role="group">
+                        <button type="button" id="btn-first" class="btn btn-outline-secondary btn-sm py-0 px-2" title="Trang đầu"><i class="fa-solid fa-angles-left small"></i></button>
+                        <button type="button" id="btn-prev" class="btn btn-outline-secondary btn-sm py-0 px-2" title="Trang trước"><i class="fa-solid fa-angle-left small"></i></button>
+                        <button type="button" id="btn-next" class="btn btn-outline-secondary btn-sm py-0 px-2" title="Trang sau"><i class="fa-solid fa-angle-right small"></i></button>
+                        <button type="button" id="btn-last" class="btn btn-outline-secondary btn-sm py-0 px-2" title="Trang cuối"><i class="fa-solid fa-angles-right small"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CỤM NÚT TÁC VỤ NỔI DÙNG CHUNG CHO DÒNG ĐANG RÊ CHUỘT -->
+<div id="globalRowActions"
+     class="global-row-actions shadow-sm"
+     role="group"
+     aria-label="Thao tác giao dịch">
+    <button type="button" class="btn btn-light btn-sm text-secondary"
+            title="Xem" aria-label="Xem giao dịch" id="btnViewRow">
+        <i class="fa-solid fa-eye"></i>
+    </button>
+    <button type="button" class="btn btn-light btn-sm text-primary"
+            title="Sửa" aria-label="Sửa giao dịch" id="btnEditRow">
+        <i class="fa-solid fa-pen"></i>
+    </button>
+    <button type="button" class="btn btn-light btn-sm text-danger"
+            title="Xóa" aria-label="Xóa giao dịch" id="btnDeleteRow">
+        <i class="fa-solid fa-trash"></i>
+    </button>
+</div>
+
+<!-- CSS Cấu hình giao diện & Thanh tác vụ nổi -->
+<style>
+    body {
+        overflow: hidden !important;
+    }
+
+    .table-sticky {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table-bordered > :not(caption) > * > * {
+        border-width: 1px;
+        border-color: #dee2e6;
+    }
+
+    .table-sticky thead th {
+        position: sticky !important;
+        top: 0 !important;
+        background-color: #f8f9fa !important;
+        z-index: 3;
+    }
+
+    .table-sticky tfoot.table-footer-sticky td {
+        position: sticky !important;
+        bottom: 0 !important;
+        background-color: #f1f3f5 !important;
+        z-index: 3;
+        border-top: 2px solid #dee2e6;
+    }
+
+    .table-sticky th:first-child,
+    .table-sticky td:first-child {
+        position: sticky !important;
+        left: 0 !important;
+        background-color: #ffffff !important;
+        z-index: 2;
+    }
+
+    .table-sticky thead th:first-child {
+        z-index: 4 !important;
+        background-color: #f8f9fa !important;
+    }
+
+    .table-sticky tfoot td:first-child {
+        z-index: 4 !important;
+        background-color: #f1f3f5 !important;
+    }
+
+    /* Làm nổi bật dòng đang được rê chuột */
+    .hover-row-action:hover td {
+        background-color: #f0f7ff !important;
+    }
+
+    /* Thanh tác vụ nổi dùng chung */
+    .global-row-actions {
+        position: fixed;
+        display: none;
+        align-items: center;
+        gap: 3px;
+        padding: 4px;
+        background: #ffffff;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        z-index: 99999;
+        white-space: nowrap;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+    }
+
+    .global-row-actions.show {
+        display: flex;
+    }
+
+    .global-row-actions button {
+        width: 30px;
+        height: 28px;
+        padding: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+    }
+
+    .global-row-actions button:hover {
+        background-color: #e9ecef;
+    }
+
+    @@media (hover: none) {
+        .global-row-actions {
+            display: none !important;
+        }
+    }
+</style>
+
+<!-- Script xử lý sự kiện Tab ủy quyền (Event Delegation) và phân trang / bảng -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const btnBatchPost = document.getElementById("btnBatchPost");
+
+        if (btnBatchPost && !btnBatchPost.dataset.bound) {
+            btnBatchPost.dataset.bound = "true";
+            btnBatchPost.addEventListener("click", function() {
+                const checkedBoxes = document.querySelectorAll(".row-checkbox:checked");
+                
+                if (checkedBoxes.length === 0) {
+                    alert("Vui lòng chọn ít nhất một giao dịch để ghi sổ!");
+                    return;
+                }
+
+                const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+                if (!confirm(`Bạn có chắc chắn muốn ghi sổ ${selectedIds.length} giao dịch đã chọn không?`)) {
+                    return;
+                }
+
+                fetch('/Bank/BatchPost', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(selectedIds)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message || "Ghi sổ thành công!");
+                        location.reload();
+                    } else {
+                        alert("Lỗi: " + (data.message || "Không thể thực hiện ghi sổ."));
+                    }
+                })
+                .catch(error => {
+                    console.error("Lỗi kết nối:", error);
+                    alert("Đã xảy ra lỗi trong quá trình kết nối đến máy chủ.");
+                });
+            });
+        }
+    });
+
+    // Dùng Event Delegation để bắt sự kiện click tab
+    const bankRoot = document.getElementById("bankTab")?.closest(".container-fluid");
+
+    if (bankRoot && !bankRoot.dataset.bankEventsBound) {
+        bankRoot.dataset.bankEventsBound = "true";
+
+        bankRoot.addEventListener("click", function(e) {
+            const tabBtn = e.target.closest(".tab-filter");
+            if (!tabBtn || !bankRoot.contains(tabBtn)) return;
+
+            bankRoot.querySelectorAll(".tab-filter").forEach(b => {
+                b.classList.remove(
+                    "active", "fw-semibold", "text-success",
+                    "border-bottom", "border-success", "border-2"
+                );
+                b.classList.add("text-dark");
+            });
+
+            tabBtn.classList.add(
+                "active", "fw-semibold", "text-success",
+                "border-bottom", "border-success", "border-2"
+            );
+            tabBtn.classList.remove("text-dark");
+
+            const filter = tabBtn.getAttribute("data-filter");
+
+            if (typeof window.applyBankFilter === "function") {
+                window.applyBankFilter(filter);
+            }
+        });
+    }
+
+    function initBankTableModule() {
+        const table = document.querySelector(".table-sticky");
+        if (!table) return;
+
+        const tbody = table.querySelector("tbody");
+        let rows = Array.from(tbody.querySelectorAll("tr:not(.no-data)"));
+        const totalRecordsEl = document.getElementById("total-records");
+        const footerTotalAmountEl = document.getElementById("footer-total-amount");
+
+        const infoSpan = document.getElementById("pagination-info");
+        const btnFirst = document.getElementById("btn-first");
+        const btnPrev = document.getElementById("btn-prev");
+        const btnNext = document.getElementById("btn-next");
+        const btnLast = document.getElementById("btn-last");
+        const pageSizeSelect = document.getElementById("pageSizeSelect");
+
+        const toolbarThu = document.getElementById("toolbar-thu");
+        const toolbarChi = document.getElementById("toolbar-chi");
+        const selectAllCheckbox = document.getElementById("selectAll");
+
+        let currentPage = 1;
+        let pageSize = parseInt(pageSizeSelect ? pageSizeSelect.value : 20);
+        let currentFilter = "all";
+
+        // --- XỬ LÝ HIỆN/ẨN CỤM NÚT TÁC VỤ HÀNG LOẠT VÀ NÚT THÔNG THƯỜNG KHI TICK CHỌN ---
+        const batchToolbar = document.getElementById("batchActionToolbar");
+        const defaultToolbar = document.getElementById("defaultToolbarActions");
+        const selectedCountEl = document.getElementById("selected-count");
+
+        function updateBatchToolbarState() {
+            let visibleRowCheckboxes = rows
+                .filter(r => r.style.display !== "none")
+                .map(r => r.querySelector(".row-checkbox"))
+                .filter(cb => cb !== null);
+
+            let checkedCount = visibleRowCheckboxes.filter(cb => cb.checked).length;
+
+            if (checkedCount > 0) {
+                // Hiển thị cụm nút hàng loạt, ẩn cụm nút thông thường bên phải
+                batchToolbar.classList.remove("d-none");
+                batchToolbar.classList.add("d-flex");
+                
+                if (defaultToolbar) {
+                    defaultToolbar.classList.remove("d-flex");
+                    defaultToolbar.classList.add("d-none");
+                }
+
+                if (selectedCountEl) selectedCountEl.textContent = checkedCount;
+            } else {
+                // Ẩn cụm nút hàng loạt, hiển thị lại cụm nút thông thường bên phải
+                batchToolbar.classList.remove("d-flex");
+                batchToolbar.classList.add("d-none");
+
+                if (defaultToolbar) {
+                    defaultToolbar.classList.remove("d-none");
+                    defaultToolbar.classList.add("d-flex");
+                }
+            }
+
+            // Đồng bộ trạng thái checkbox "Chọn tất cả"
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = (visibleRowCheckboxes.length > 0 && checkedCount === visibleRowCheckboxes.length);
+            }
+        }
+
+        if (tbody && !tbody.dataset.batchBound) {
+            tbody.dataset.batchBound = "true";
+            tbody.addEventListener("change", function(e) {
+                if (e.target && e.target.classList.contains("row-checkbox")) {
+                    updateBatchToolbarState();
+                }
+            });
+        }
+
+        if (selectAllCheckbox && !selectAllCheckbox.dataset.batchBound) {
+            selectAllCheckbox.dataset.batchBound = "true";
+            selectAllCheckbox.addEventListener("change", function() {
+                let filteredRows = rows.filter(r => currentFilter === "all" || r.getAttribute("data-type") === currentFilter);
+                filteredRows.forEach(row => {
+                    const cb = row.querySelector(".row-checkbox");
+                    if (cb && row.style.display !== "none") {
+                        cb.checked = selectAllCheckbox.checked;
+                    }
+                });
+                updateBatchToolbarState();
+            });
+        }
+
+        window.applyBankFilter = function(filterVal) {
+            currentFilter = filterVal;
+            currentPage = 1;
+
+            if (toolbarThu && toolbarChi) {
+                if (currentFilter === "thu") {
+                    toolbarThu.classList.remove("d-none");
+                    toolbarChi.classList.add("d-none");
+                } else if (currentFilter === "chi") {
+                    toolbarThu.classList.add("d-none");
+                    toolbarChi.classList.remove("d-none");
+                } else {
+                    toolbarThu.classList.remove("d-none");
+                    toolbarChi.classList.remove("d-none");
+                }
+            }
+            renderTable();
+        };
+
+        function renderTable() {
+            let filteredRows = rows.filter(row => {
+                if (currentFilter === "all") return true;
+                return row.getAttribute("data-type") === currentFilter;
+            });
+
+            const totalFiltered = filteredRows.length;
+            if (totalRecordsEl) totalRecordsEl.textContent = totalFiltered;
+
+            let sumAmount = 0;
+            filteredRows.forEach(row => {
+                const amount = parseFloat(row.getAttribute("data-amount")) || 0;
+                sumAmount += amount;
+            });
+            if (footerTotalAmountEl) {
+                footerTotalAmountEl.textContent = sumAmount.toLocaleString('en-US');
+            }
+
+            const totalPages = Math.ceil(totalFiltered / pageSize) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = Math.min(startIdx + pageSize, totalFiltered);
+
+            rows.forEach(row => row.style.display = "none");
+            for (let i = startIdx; i < endIdx; i++) {
+                if (filteredRows[i]) {
+                    filteredRows[i].style.display = "";
+                }
+            }
+
+            if (infoSpan) {
+                infoSpan.textContent = totalFiltered === 0 ? "0 - 0" : `${startIdx + 1} - ${endIdx}`;
+            }
+
+            if (btnFirst) btnFirst.disabled = (currentPage === 1);
+            if (btnPrev) btnPrev.disabled = (currentPage === 1);
+            if (btnNext) btnNext.disabled = (currentPage >= totalPages || totalPages === 0);
+            if (btnLast) btnLast.disabled = (currentPage >= totalPages || totalPages === 0);
+        }
+
+        if (pageSizeSelect && !pageSizeSelect.dataset.bound) {
+            pageSizeSelect.dataset.bound = "true";
+            pageSizeSelect.addEventListener("change", function() {
+                pageSize = parseInt(this.value);
+                currentPage = 1;
+                renderTable();
+            });
+        }
+
+        if (btnFirst && !btnFirst.dataset.bound) {
+            btnFirst.dataset.bound = "true";
+            btnFirst.addEventListener("click", () => { if (currentPage > 1) { currentPage = 1; renderTable(); } });
+            btnPrev.addEventListener("click", () => { if (currentPage > 1) { currentPage--; renderTable(); } });
+            btnNext.addEventListener("click", () => {
+                let filteredRows = rows.filter(r => currentFilter === "all" || r.getAttribute("data-type") === currentFilter);
+                let totalPages = Math.ceil(filteredRows.length / pageSize) || 1;
+                if (currentPage < totalPages) { currentPage++; renderTable(); }
+            });
+            btnLast.addEventListener("click", () => {
+                let filteredRows = rows.filter(r => currentFilter === "all" || r.getAttribute("data-type") === currentFilter);
+                let totalPages = Math.ceil(filteredRows.length / pageSize) || 1;
+                if (currentPage < totalPages) { currentPage = totalPages; renderTable(); }
+            });
+        }
+
+        renderTable();
+    }
+
+    initBankTableModule();
+</script>
+
+<!-- Script điều khiển cụm nút Xem - Sửa - Xóa nổi ở mép phải bảng -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const actionPanel = document.getElementById("globalRowActions");
+        const tableContainer = document.querySelector(".table-responsive");
+
+        if (!actionPanel || !tableContainer) return;
+
+        const btnView = document.getElementById("btnViewRow");
+        const btnEdit = document.getElementById("btnEditRow");
+        const btnDelete = document.getElementById("btnDeleteRow");
+
+        let currentRow = null;
+        let hideTimer = null;
+
+        function hideActions() {
+            window.clearTimeout(hideTimer);
+            currentRow = null;
+            actionPanel.classList.remove("show");
+        }
+
+        function updateActionPosition() {
+            if (!currentRow || !currentRow.isConnected ||
+                currentRow.style.display === "none") {
+                hideActions();
+                return;
+            }
+
+            const rowRect = currentRow.getBoundingClientRect();
+            const containerRect = tableContainer.getBoundingClientRect();
+
+            const visibleTop = Math.max(containerRect.top, 0);
+            const visibleBottom = Math.min(containerRect.bottom, window.innerHeight);
+
+            if (rowRect.bottom <= visibleTop || rowRect.top >= visibleBottom) {
+                actionPanel.classList.remove("show");
+                return;
+            }
+
+            actionPanel.classList.add("show");
+
+            const panelWidth = actionPanel.offsetWidth;
+            const panelHeight = actionPanel.offsetHeight;
+
+            let left = Math.min(
+                containerRect.right - panelWidth - 8,
+                window.innerWidth - panelWidth - 8
+            );
+            left = Math.max(8, left);
+
+            let top = rowRect.top + (rowRect.height - panelHeight) / 2;
+            top = Math.max(5, Math.min(top, window.innerHeight - panelHeight - 5));
+
+            actionPanel.style.left = left + "px";
+            actionPanel.style.top = top + "px";
+        }
+
+        function scheduleHide() {
+            window.clearTimeout(hideTimer);
+            hideTimer = window.setTimeout(function() {
+                if (!actionPanel.matches(":hover") &&
+                    !(currentRow && currentRow.matches(":hover"))) {
+                    hideActions();
+                }
+            }, 100);
+        }
+
+        tableContainer.addEventListener("mouseover", function(event) {
+            const row = event.target.closest("tr[data-transaction-id]");
+            if (!row || !tableContainer.contains(row)) return;
+
+            window.clearTimeout(hideTimer);
+            currentRow = row;
+            updateActionPosition();
+        });
+
+        tableContainer.addEventListener("mouseout", function(event) {
+            const row = event.target.closest("tr[data-transaction-id]");
+            if (!row) return;
+
+            const nextTarget = event.relatedTarget;
+            if (nextTarget && (row.contains(nextTarget) || actionPanel.contains(nextTarget))) {
+                return;
+            }
+
+            scheduleHide();
+        });
+
+        actionPanel.addEventListener("mouseenter", function() {
+            window.clearTimeout(hideTimer);
+        });
+
+        actionPanel.addEventListener("mouseleave", scheduleHide);
+
+        tableContainer.addEventListener("scroll", updateActionPosition, { passive: true });
+        window.addEventListener("scroll", updateActionPosition, { passive: true });
+        window.addEventListener("resize", updateActionPosition);
+
+        function runRowAction(actionName) {
+            if (!currentRow) return;
+
+            const transactionId = currentRow.getAttribute("data-transaction-id");
+            hideActions();
+
+            const actionFunction = window[actionName];
+            if (typeof actionFunction === "function") {
+                actionFunction(transactionId);
+            } else {
+                console.error(
+                    "Chưa khai báo hàm " + actionName +
+                    "(id). Hãy kiểm tra hàm xử lý Xem/Sửa/Xóa trong View hoặc file JavaScript."
+                );
+            }
+        }
+
+        if (btnView && !btnView.dataset.bound) {
+            btnView.dataset.bound = "true";
+            btnView.addEventListener("click", function() {
+                runRowAction("viewRow");
+            });
+        }
+
+        if (btnEdit && !btnEdit.dataset.bound) {
+            btnEdit.dataset.bound = "true";
+            btnEdit.addEventListener("click", function() {
+                runRowAction("editRow");
+            });
+        }
+
+        if (btnDelete && !btnDelete.dataset.bound) {
+            btnDelete.dataset.bound = "true";
+            btnDelete.addEventListener("click", function() {
+                runRowAction("deleteRow");
+            });
+        }
+    });
+</script>
